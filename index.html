@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexusApp — Enterprise Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Design Tokens ─────────────────────────────────────────────────────────── */
+:root {
+  --c-bg:         #080c12;
+  --c-surface:    #0d1420;
+  --c-surface2:   #111a2e;
+  --c-border:     #1e2d47;
+  --c-border2:    #263854;
+  --c-accent:     #0df2a8;
+  --c-accent2:    #0ab87e;
+  --c-accent-dim: rgba(13,242,168,0.08);
+  --c-accent-glow:rgba(13,242,168,0.25);
+  --c-blue:       #4d9fff;
+  --c-blue-dim:   rgba(77,159,255,0.1);
+  --c-warn:       #ffb340;
+  --c-warn-dim:   rgba(255,179,64,0.1);
+  --c-error:      #ff4d6a;
+  --c-error-dim:  rgba(255,77,106,0.1);
+  --c-text:       #e8edf5;
+  --c-text2:      #7a90b0;
+  --c-text3:      #3d5270;
+  --f-display:    'Syne', sans-serif;
+  --f-body:       'Inter', sans-serif;
+  --f-mono:       'DM Mono', monospace;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 16px; --r-xl: 24px;
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--c-bg); }
+::-webkit-scrollbar-thumb { background: var(--c-border2); border-radius: 3px; }
+
+/* ── Router / Views ────────────────────────────────────────────────────────── */
+.view { display: none; min-height: 100vh; }
+.view.active { display: block; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LOGIN PAGE
+══════════════════════════════════════════════════════════════════════════════ */
+#view-login {
+  display: none;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+#view-login.active { display: flex; }
+
+/* Animated grid background */
+.login-bg {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--c-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--c-border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.3;
+  animation: bgShift 20s linear infinite;
+}
+.login-bg::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(13,242,168,0.05) 0%, transparent 70%);
+}
+@keyframes bgShift { from { background-position: 0 0; } to { background-position: 60px 60px; } }
+
+.login-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: orbFloat 8s ease-in-out infinite;
+}
+.login-orb-1 { width: 400px; height: 400px; background: rgba(13,242,168,0.06); top: -100px; right: -100px; animation-delay: 0s; }
+.login-orb-2 { width: 300px; height: 300px; background: rgba(77,159,255,0.05); bottom: -80px; left: -80px; animation-delay: -4s; }
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -20px) scale(1.05); }
+}
+
+.login-card {
+  position: relative; z-index: 10;
+  width: 420px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-xl);
+  padding: 40px;
+  box-shadow: var(--shadow-card), 0 0 0 1px rgba(13,242,168,0.05);
+  animation: cardIn 0.6s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-logo {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 32px;
+}
+.login-logo-icon {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, var(--c-accent), var(--c-blue));
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-family: var(--f-display); font-weight: 800;
+  color: var(--c-bg);
+}
+.login-logo-text { font-family: var(--f-display); font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+.login-logo-text span { color: var(--c-accent); }
+
+.login-headline {
+  font-family: var(--f-display);
+  font-size: 26px; font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+.login-sub { color: var(--c-text2); font-size: 13px; margin-bottom: 28px; }
+
+/* Form */
+.form-group { margin-bottom: 18px; }
+.form-label {
+  display: block; font-size: 12px; font-weight: 500;
+  color: var(--c-text2); margin-bottom: 7px;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  font-family: var(--f-mono);
+}
+.form-input, .form-select {
+  width: 100%; padding: 11px 14px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-text);
+  font-family: var(--f-body);
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  outline: none;
+  appearance: none;
+}
+.form-input:focus, .form-select:focus {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px var(--c-accent-glow);
+  background: #0f1c30;
+}
+.form-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a90b0' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; cursor: pointer; }
+
+.form-input.error { border-color: var(--c-error); }
+
+.btn-primary {
+  width: 100%; padding: 13px;
+  background: var(--c-accent);
+  color: var(--c-bg);
+  font-family: var(--f-display);
+  font-size: 15px; font-weight: 700;
+  border: none; border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  letter-spacing: 0.3px;
+  margin-top: 8px;
+  position: relative; overflow: hidden;
+}
+.btn-primary:hover { background: var(--c-accent2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(13,242,168,0.3); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.btn-primary .spinner-inline {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(0,0,0,0.2); border-top-color: var(--c-bg);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  vertical-align: middle; margin-right: 8px;
+}
+
+.login-error {
+  background: var(--c-error-dim);
+  border: 1px solid rgba(255,77,106,0.3);
+  border-radius: var(--r-sm);
+  padding: 10px 14px;
+  color: var(--c-error);
+  font-size: 13px;
+  margin-top: 14px;
+  display: none;
+  animation: slideDown 0.2s ease;
+}
+.login-error.show { display: block; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+.login-hint {
+  background: var(--c-accent-dim);
+  border: 1px solid rgba(13,242,168,0.15);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  margin-top: 20px;
+}
+.login-hint-title { font-family: var(--f-mono); font-size: 11px; color: var(--c-accent); margin-bottom: 8px; letter-spacing: 1px; }
+.login-hint-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
+.login-hint-label { font-size: 12px; color: var(--c-text2); }
+.login-hint-val { font-family: var(--f-mono); font-size: 11px; color: var(--c-text); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DASHBOARD LAYOUT
+══════════════════════════════════════════════════════════════════════════════ */
+#view-dashboard {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+}
+#view-dashboard.active { display: flex; }
+
+/* ── Topbar ─────────────────────────────────────────────────────────────────── */
+.topbar {
+  height: 60px;
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  display: flex; align-items: center;
+  padding: 0 24px;
+  position: sticky; top: 0; z-index: 100;
+  gap: 16px;
+}
+.topbar-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--f-display); font-weight: 700; font-size: 18px;
+  letter-spacing: -0.3px;
+  flex-shrink: 0;
+}
+.topbar-logo-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--c-accent);
+  box-shadow: 0 0 8px var(--c-accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.85); } }
+
+.topbar-divider { width: 1px; height: 24px; background: var(--c-border); flex-shrink: 0; }
+
+.topbar-nav { display: flex; gap: 4px; flex: 1; }
+.nav-tab {
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 500;
+  color: var(--c-text2);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none; background: transparent;
+  font-family: var(--f-body);
+}
+.nav-tab:hover { background: var(--c-surface2); color: var(--c-text); }
+.nav-tab.active { background: var(--c-accent-dim); color: var(--c-accent); }
+.nav-tab .badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 9px;
+  background: var(--c-accent); color: var(--c-bg);
+  font-size: 10px; font-weight: 700;
+  margin-left: 6px;
+}
+
+.topbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+
+.delay-control {
+  display: flex; align-items: center; gap: 8px;
+}
+.delay-label { font-family: var(--f-mono); font-size: 11px; color: var(--c-text3); white-space: nowrap; }
+.delay-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 80px; height: 4px;
+  background: var(--c-border); border-radius: 2px; outline: none; cursor: pointer;
+}
+.delay-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--c-accent); cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.delay-slider:hover::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--c-accent-glow); }
+.delay-value { font-family: var(--f-mono); font-size: 11px; color: var(--c-accent); width: 38px; }
+
+.user-pill {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px 5px 5px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.user-pill:hover { border-color: var(--c-border2); }
+.user-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--f-display); font-size: 12px; font-weight: 700;
+  color: var(--c-bg);
+  flex-shrink: 0;
+}
+.user-avatar.admin { background: linear-gradient(135deg, var(--c-accent), var(--c-blue)); }
+.user-avatar.user { background: linear-gradient(135deg, var(--c-blue), #9d6fff); }
+.user-pill-name { font-size: 13px; font-weight: 500; }
+.user-pill-role { font-family: var(--f-mono); font-size: 10px; color: var(--c-text2); }
+
+.btn-logout {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-text2);
+  font-size: 13px; cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--f-body);
+}
+.btn-logout:hover { border-color: var(--c-error); color: var(--c-error); background: var(--c-error-dim); }
+
+/* ── Main Layout ────────────────────────────────────────────────────────────── */
+.main-content { flex: 1; padding: 28px 28px 40px; max-width: 1400px; width: 100%; margin: 0 auto; }
+
+/* ── Tab Panels ─────────────────────────────────────────────────────────────── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: panelIn 0.3s ease; }
+@keyframes panelIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Section Header ─────────────────────────────────────────────────────────── */
+.section-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+}
+.section-title { font-family: var(--f-display); font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+.section-sub { color: var(--c-text2); font-size: 13px; margin-top: 2px; }
+.section-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ── Cards ─────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Stats Grid ─────────────────────────────────────────────────────────────── */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+  animation: statIn 0.5s cubic-bezier(.22,1,.36,1) both;
+}
+.stat-card:hover { border-color: var(--c-border2); transform: translateY(-2px); }
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.stat-card.green::before { background: var(--c-accent); }
+.stat-card.blue::before  { background: var(--c-blue); }
+.stat-card.warn::before  { background: var(--c-warn); }
+.stat-card.red::before   { background: var(--c-error); }
+
+@keyframes statIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stat-label { font-family: var(--f-mono); font-size: 11px; color: var(--c-text2); letter-spacing: 0.5px; margin-bottom: 10px; text-transform: uppercase; }
+.stat-value { font-family: var(--f-display); font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+.stat-value.green { color: var(--c-accent); }
+.stat-value.blue  { color: var(--c-blue); }
+.stat-value.warn  { color: var(--c-warn); }
+.stat-value.red   { color: var(--c-error); }
+.stat-sub { font-size: 12px; color: var(--c-text3); margin-top: 6px; }
+
+/* ── Profile Card ───────────────────────────────────────────────────────────── */
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+@media (max-width: 700px) { .profile-grid { grid-template-columns: 1fr; } }
+
+.profile-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: 24px;
+}
+.profile-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.profile-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--f-display); font-size: 22px; font-weight: 800;
+  color: var(--c-bg); flex-shrink: 0;
+}
+.profile-avatar.admin { background: linear-gradient(135deg, var(--c-accent), var(--c-blue)); }
+.profile-avatar.user  { background: linear-gradient(135deg, var(--c-blue), #9d6fff); }
+.profile-name { font-family: var(--f-display); font-size: 18px; font-weight: 700; }
+.profile-role-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 12px;
+  font-family: var(--f-mono); font-size: 11px; font-weight: 500;
+  margin-top: 4px;
+}
+.profile-role-badge.admin { background: var(--c-accent-dim); color: var(--c-accent); border: 1px solid rgba(13,242,168,0.2); }
+.profile-role-badge.user  { background: var(--c-blue-dim); color: var(--c-blue); border: 1px solid rgba(77,159,255,0.2); }
+
+.profile-fields { display: flex; flex-direction: column; gap: 12px; }
+.profile-field { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--c-border); }
+.profile-field:last-child { border-bottom: none; }
+.pf-label { font-family: var(--f-mono); font-size: 11px; color: var(--c-text3); text-transform: uppercase; letter-spacing: 0.5px; }
+.pf-value { font-size: 13px; color: var(--c-text); font-weight: 500; }
+
+.active-badge { display: inline-flex; align-items: center; gap: 4px; }
+.active-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-accent); box-shadow: 0 0 6px var(--c-accent); }
+
+/* ── Table ──────────────────────────────────────────────────────────────────── */
+.table-container { overflow-x: auto; border-radius: var(--r-lg); border: 1px solid var(--c-border); }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  padding: 12px 16px;
+  background: var(--c-surface);
+  font-family: var(--f-mono); font-size: 11px; font-weight: 500;
+  color: var(--c-text2); text-transform: uppercase; letter-spacing: 0.5px;
+  text-align: left; border-bottom: 1px solid var(--c-border);
+  white-space: nowrap; cursor: pointer; user-select: none;
+}
+.data-table th:hover { color: var(--c-text); }
+.data-table th .sort-icon { margin-left: 4px; opacity: 0.4; }
+.data-table th.sort-asc .sort-icon::after { content: ' ↑'; }
+.data-table th.sort-desc .sort-icon::after { content: ' ↓'; }
+.data-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(30,45,71,0.6);
+  color: var(--c-text); font-size: 13px;
+  vertical-align: middle;
+}
+.data-table tr { transition: background 0.1s; }
+.data-table tbody tr:hover { background: rgba(13,242,168,0.02); }
+.data-table tbody tr:last-child td { border-bottom: none; }
+
+/* ── Badges ─────────────────────────────────────────────────────────────────── */
+.badge-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 12px;
+  font-family: var(--f-mono); font-size: 11px; font-weight: 500;
+  white-space: nowrap;
+}
+.badge-Active    { background: rgba(13,242,168,0.1); color: var(--c-accent); border: 1px solid rgba(13,242,168,0.2); }
+.badge-Pending   { background: var(--c-warn-dim); color: var(--c-warn); border: 1px solid rgba(255,179,64,0.2); }
+.badge-Closed    { background: rgba(122,144,176,0.1); color: var(--c-text2); border: 1px solid rgba(122,144,176,0.2); }
+.badge-Archived  { background: rgba(61,82,112,0.2); color: var(--c-text3); border: 1px solid rgba(61,82,112,0.3); }
+.badge-Critical  { background: var(--c-error-dim); color: var(--c-error); border: 1px solid rgba(255,77,106,0.2); }
+.badge-High      { background: var(--c-warn-dim); color: var(--c-warn); border: 1px solid rgba(255,179,64,0.2); }
+.badge-Medium    { background: var(--c-blue-dim); color: var(--c-blue); border: 1px solid rgba(77,159,255,0.2); }
+.badge-Low       { background: rgba(122,144,176,0.1); color: var(--c-text2); border: 1px solid rgba(122,144,176,0.2); }
+.badge-Public    { background: rgba(13,242,168,0.08); color: var(--c-accent2); border: 1px solid rgba(13,242,168,0.15); }
+.badge-Restricted{ background: var(--c-warn-dim); color: var(--c-warn); border: 1px solid rgba(255,179,64,0.15); }
+.badge-Confidential { background: var(--c-error-dim); color: var(--c-error); border: 1px solid rgba(255,77,106,0.15); }
+.badge-Admin     { background: var(--c-accent-dim); color: var(--c-accent); border: 1px solid rgba(13,242,168,0.2); }
+.badge-General   { background: var(--c-blue-dim); color: var(--c-blue); border: 1px solid rgba(77,159,255,0.2); }
+.badge-true      { background: rgba(13,242,168,0.1); color: var(--c-accent); border: 1px solid rgba(13,242,168,0.2); }
+.badge-false     { background: var(--c-error-dim); color: var(--c-error); border: 1px solid rgba(255,77,106,0.2); }
+
+/* ── Filters ────────────────────────────────────────────────────────────────── */
+.filters-bar {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.filter-select {
+  padding: 7px 30px 7px 10px;
+  background: var(--c-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237a90b0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-text); font-size: 13px;
+  cursor: pointer; outline: none; appearance: none;
+  font-family: var(--f-body);
+  transition: border-color 0.2s;
+}
+.filter-select:focus { border-color: var(--c-accent); }
+
+.search-input {
+  padding: 7px 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-text); font-size: 13px;
+  outline: none; flex: 1; min-width: 160px;
+  font-family: var(--f-body);
+  transition: border-color 0.2s;
+}
+.search-input:focus { border-color: var(--c-accent); }
+
+.btn-sm {
+  padding: 7px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface2);
+  color: var(--c-text); font-size: 13px;
+  cursor: pointer; transition: all 0.15s;
+  font-family: var(--f-body);
+  white-space: nowrap;
+}
+.btn-sm:hover { border-color: var(--c-border2); background: var(--c-border); }
+.btn-sm.primary { background: var(--c-accent); color: var(--c-bg); border-color: var(--c-accent); font-weight: 600; }
+.btn-sm.primary:hover { background: var(--c-accent2); }
+.btn-sm.danger  { border-color: transparent; color: var(--c-error); }
+.btn-sm.danger:hover { background: var(--c-error-dim); border-color: rgba(255,77,106,0.3); }
+
+/* ── Loading Skeleton / Overlay ─────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--c-surface2) 25%, var(--c-border) 50%, var(--c-surface2) 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+.loading-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(8,12,18,0.85);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 16px;
+}
+.loading-overlay.show { display: flex; }
+
+.spinner {
+  width: 48px; height: 48px;
+  border: 3px solid rgba(13,242,168,0.2);
+  border-top-color: var(--c-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text { font-family: var(--f-mono); font-size: 13px; color: var(--c-text2); }
+.loading-timer { font-family: var(--f-mono); font-size: 20px; color: var(--c-accent); letter-spacing: 2px; }
+
+/* Inline loading bar */
+.loading-bar-wrapper {
+  height: 3px; background: var(--c-border); border-radius: 2px; overflow: hidden; margin-bottom: 20px;
+  display: none;
+}
+.loading-bar-wrapper.show { display: block; }
+.loading-bar { height: 100%; background: var(--c-accent); width: 0; transition: width 0.1s linear; border-radius: 2px; }
+
+/* ── Access Banner ──────────────────────────────────────────────────────────── */
+.access-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-radius: var(--r-sm);
+  font-size: 13px; margin-bottom: 16px;
+}
+.access-banner.admin { background: var(--c-accent-dim); border: 1px solid rgba(13,242,168,0.2); color: var(--c-accent); }
+.access-banner.user  { background: var(--c-blue-dim); border: 1px solid rgba(77,159,255,0.2); color: var(--c-blue); }
+.access-banner-icon { font-size: 16px; }
+
+/* ── Empty State ────────────────────────────────────────────────────────────── */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+}
+.empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+.empty-state-text { color: var(--c-text2); font-size: 14px; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ADMIN — USERS PANEL
+══════════════════════════════════════════════════════════════════════════════ */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(8,12,18,0.85);
+  backdrop-filter: blur(6px);
+  display: none; align-items: center; justify-content: center;
+}
+.modal-backdrop.show { display: flex; }
+
+.modal {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-xl);
+  padding: 32px;
+  width: 480px; max-width: 90vw;
+  box-shadow: var(--shadow-card);
+  animation: modalIn 0.3s cubic-bezier(.22,1,.36,1);
+  max-height: 90vh; overflow-y: auto;
+}
+@keyframes modalIn { from { opacity: 0; transform: scale(0.92) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.modal-title { font-family: var(--f-display); font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.modal-sub { color: var(--c-text2); font-size: 13px; margin-bottom: 24px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+/* ── Toast ──────────────────────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed; bottom: 24px; right: 24px; z-index: 500;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.toast {
+  padding: 12px 18px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  animation: toastIn 0.3s cubic-bezier(.22,1,.36,1);
+  cursor: pointer;
+  max-width: 320px;
+  border-left: 3px solid;
+}
+.toast.success { background: var(--c-surface2); border-color: var(--c-accent); color: var(--c-text); }
+.toast.error   { background: var(--c-surface2); border-color: var(--c-error); color: var(--c-text); }
+.toast.info    { background: var(--c-surface2); border-color: var(--c-blue); color: var(--c-text); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ── Async Indicator ────────────────────────────────────────────────────────── */
+.async-indicator {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--f-mono); font-size: 11px; color: var(--c-warn);
+  background: var(--c-warn-dim); border: 1px solid rgba(255,179,64,0.2);
+  padding: 4px 10px; border-radius: 12px;
+}
+.async-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-warn); animation: asyncBlink 1s ease-in-out infinite; }
+@keyframes asyncBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+/* ── Value Format ───────────────────────────────────────────────────────────── */
+.mono { font-family: var(--f-mono); }
+.text-muted { color: var(--c-text2); }
+.text-dim { color: var(--c-text3); font-size: 12px; }
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .topbar { padding: 0 14px; }
+  .main-content { padding: 16px; }
+  .delay-control { display: none; }
+  .topbar-divider { display: none; }
+  .stat-value { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     LOGIN VIEW  (Angular: LoginComponent)
+══════════════════════════════════════════════════════════════════════════════ -->
+<div id="view-login" class="view">
+  <div class="login-bg"></div>
+  <div class="login-orb login-orb-1"></div>
+  <div class="login-orb login-orb-2"></div>
+
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">N</div>
+      <div class="login-logo-text">Nexus<span>App</span></div>
+    </div>
+
+    <h1 class="login-headline">Sign in to your workspace</h1>
+    <p class="login-sub">Secure access to the NexusApp enterprise portal</p>
+
+    <div class="form-group">
+      <label class="form-label" for="login-userid">User ID</label>
+      <input id="login-userid" class="form-input" type="text" placeholder="e.g. admin01" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="login-password">Password</label>
+      <input id="login-password" class="form-input" type="password" placeholder="Enter password" autocomplete="current-password">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="login-role">Access Role</label>
+      <select id="login-role" class="form-select">
+        <option value="">Select your role</option>
+        <option value="General User">General User</option>
+        <option value="Admin">Admin</option>
+      </select>
+    </div>
+
+    <button id="login-btn" class="btn-primary" onclick="handleLogin()">Sign In</button>
+
+    <div id="login-error" class="login-error"></div>
+
+    <div class="login-hint">
+      <div class="login-hint-title">▸ DEMO CREDENTIALS</div>
+      <div class="login-hint-row">
+        <span class="login-hint-label">Admin</span>
+        <span class="login-hint-val">admin01 / Admin@123</span>
+      </div>
+      <div class="login-hint-row">
+        <span class="login-hint-label">General User</span>
+        <span class="login-hint-val">jsmith / User@123</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     DASHBOARD VIEW  (Angular: DashboardComponent + router-outlet)
+══════════════════════════════════════════════════════════════════════════════ -->
+<div id="view-dashboard" class="view">
+
+  <!-- Topbar (Angular: TopbarComponent) -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-logo-dot"></div>
+      NexusApp
+    </div>
+    <div class="topbar-divider"></div>
+    <nav class="topbar-nav" id="topbar-nav">
+      <button class="nav-tab active" data-tab="overview" onclick="switchTab('overview', this)">Overview</button>
+      <button class="nav-tab" data-tab="records" onclick="switchTab('records', this)">Records</button>
+      <button id="admin-tab-btn" class="nav-tab" data-tab="admin" style="display:none" onclick="switchTab('admin', this)">
+        Admin <span class="badge" id="admin-badge">0</span>
+      </button>
+    </nav>
+
+    <div class="topbar-right">
+      <div class="delay-control" title="Simulate API delay for async demo">
+        <span class="delay-label">API DELAY</span>
+        <input type="range" class="delay-slider" id="delay-slider" min="0" max="5000" step="500" value="0" oninput="updateDelay(this.value)">
+        <span class="delay-value" id="delay-display">0ms</span>
+      </div>
+
+      <div class="topbar-divider"></div>
+
+      <div class="user-pill" id="user-pill">
+        <div class="user-avatar" id="topbar-avatar"></div>
+        <div>
+          <div class="user-pill-name" id="topbar-name"></div>
+          <div class="user-pill-role" id="topbar-role"></div>
+        </div>
+      </div>
+
+      <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content">
+
+    <!-- Loading Bar (async indicator) -->
+    <div class="loading-bar-wrapper" id="loading-bar-wrapper">
+      <div class="loading-bar" id="loading-bar"></div>
+    </div>
+
+    <!-- ── OVERVIEW TAB (Angular: OverviewComponent) ─────────────────────── -->
+    <div class="tab-panel active" id="tab-overview">
+
+      <div class="section-header">
+        <div>
+          <h2 class="section-title" id="welcome-title">Good morning</h2>
+          <p class="section-sub" id="welcome-sub">Loading your workspace...</p>
+        </div>
+        <div class="section-actions">
+          <div id="async-indicator-overview" class="async-indicator" style="display:none">
+            <div class="async-dot"></div>
+            <span id="async-label-overview">Fetching data...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats (populated dynamically) -->
+      <div class="stats-grid" id="stats-grid">
+        <!-- skeleton -->
+        <div class="stat-card"><div class="skeleton" style="height:14px;width:60%;margin-bottom:12px;"></div><div class="skeleton" style="height:36px;width:40%;"></div></div>
+        <div class="stat-card"><div class="skeleton" style="height:14px;width:60%;margin-bottom:12px;"></div><div class="skeleton" style="height:36px;width:40%;"></div></div>
+        <div class="stat-card"><div class="skeleton" style="height:14px;width:60%;margin-bottom:12px;"></div><div class="skeleton" style="height:36px;width:40%;"></div></div>
+        <div class="stat-card"><div class="skeleton" style="height:14px;width:60%;margin-bottom:12px;"></div><div class="skeleton" style="height:36px;width:40%;"></div></div>
+      </div>
+
+      <!-- Profile + Access Info -->
+      <div class="profile-grid">
+        <div class="profile-card" id="profile-card">
+          <div class="skeleton" style="height:56px;width:56px;border-radius:50%;margin-bottom:16px;"></div>
+          <div class="skeleton" style="height:20px;width:60%;margin-bottom:8px;"></div>
+          <div class="skeleton" style="height:14px;width:40%;"></div>
+        </div>
+        <div class="profile-card" id="access-card">
+          <div class="skeleton" style="height:20px;width:70%;margin-bottom:12px;"></div>
+          <div class="skeleton" style="height:14px;width:90%;margin-bottom:8px;"></div>
+          <div class="skeleton" style="height:14px;width:75%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RECORDS TAB (Angular: RecordsComponent) ─────────────────────────── -->
+    <div class="tab-panel" id="tab-records">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Records</h2>
+          <p class="section-sub" id="records-sub">Loading records...</p>
+        </div>
+        <div class="section-actions">
+          <div id="async-indicator-records" class="async-indicator" style="display:none">
+            <div class="async-dot"></div>
+            <span>Loading asynchronously...</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="records-access-banner" class="access-banner" style="display:none"></div>
+
+      <div class="filters-bar">
+        <input type="text" class="search-input" id="record-search" placeholder="🔍  Search by title, category..." oninput="filterRecords()">
+        <select class="filter-select" id="filter-status" onchange="filterRecords()">
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Pending">Pending</option>
+          <option value="Closed">Closed</option>
+          <option value="Archived">Archived</option>
+        </select>
+        <select class="filter-select" id="filter-priority" onchange="filterRecords()">
+          <option value="">All Priority</option>
+          <option value="Critical">Critical</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <select class="filter-select" id="filter-access" onchange="filterRecords()">
+          <option value="">All Access</option>
+          <option value="Public">Public</option>
+          <option value="Restricted">Restricted</option>
+          <option value="Confidential">Confidential</option>
+        </select>
+        <button class="btn-sm" onclick="resetFilters()">Reset</button>
+        <button class="btn-sm" onclick="loadRecords()">↺ Refresh</button>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th onclick="sortRecords('title')">Title <span class="sort-icon"></span></th>
+              <th onclick="sortRecords('category')">Category <span class="sort-icon"></span></th>
+              <th onclick="sortRecords('status')">Status <span class="sort-icon"></span></th>
+              <th onclick="sortRecords('priority')">Priority <span class="sort-icon"></span></th>
+              <th onclick="sortRecords('accessLevel')">Access <span class="sort-icon"></span></th>
+              <th onclick="sortRecords('ownerName')">Owner <span class="sort-icon"></span></th>
+              <th onclick="sortRecords('updatedAt')">Updated <span class="sort-icon"></span></th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody id="records-tbody"></tbody>
+        </table>
+      </div>
+      <div id="records-empty" class="empty-state" style="display:none">
+        <div class="empty-state-icon">📂</div>
+        <div class="empty-state-text">No records match your filters</div>
+      </div>
+      <div id="records-count" style="font-family:var(--f-mono);font-size:11px;color:var(--c-text3);margin-top:12px;text-align:right;"></div>
+    </div>
+
+    <!-- ── ADMIN TAB (Angular: AdminComponent) ─────────────────────────────── -->
+    <div class="tab-panel" id="tab-admin">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">User Management</h2>
+          <p class="section-sub">Manage platform users and access roles</p>
+        </div>
+        <div class="section-actions">
+          <div id="async-indicator-admin" class="async-indicator" style="display:none">
+            <div class="async-dot"></div>
+            <span>Loading users...</span>
+          </div>
+          <button class="btn-sm primary" onclick="openCreateUserModal()">+ New User</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>User ID</th>
+              <th>Email</th>
+              <th>Department</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Last Login</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+      <div id="users-count" style="font-family:var(--f-mono);font-size:11px;color:var(--c-text3);margin-top:12px;text-align:right;"></div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /view-dashboard -->
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     LOADING OVERLAY (async processing indicator)
+══════════════════════════════════════════════════════════════════════════════ -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Processing request...</div>
+  <div class="loading-timer" id="loading-timer">0.0s</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     USER MODAL (Create / Edit)
+══════════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="user-modal-backdrop" onclick="closeModalOnBackdrop(event)">
+  <div class="modal">
+    <h2 class="modal-title" id="modal-title">Create User</h2>
+    <p class="modal-sub" id="modal-sub">Add a new user to the platform</p>
+
+    <div id="modal-body">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input id="m-fullName" class="form-input" type="text" placeholder="e.g. Jane Doe">
+      </div>
+      <div class="form-group">
+        <label class="form-label">User ID *</label>
+        <input id="m-userId" class="form-input" type="text" placeholder="e.g. jdoe">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input id="m-email" class="form-input" type="email" placeholder="jdoe@nexus.io">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input id="m-password" class="form-input" type="password" placeholder="Min 6 characters">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role *</label>
+        <select id="m-role" class="form-select">
+          <option value="General User">General User</option>
+          <option value="Admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Department</label>
+        <input id="m-department" class="form-input" type="text" placeholder="e.g. Engineering">
+      </div>
+      <div id="modal-error" class="login-error"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeUserModal()">Cancel</button>
+      <button class="btn-sm primary" id="modal-save-btn" onclick="saveUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     APPLICATION SCRIPT  (Angular: AppModule + Services + Components)
+══════════════════════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ────────────────────────────────────────────────────────────────────────────
+   CONFIG  (Angular: environment.ts)
+──────────────────────────────────────────────────────────────────────────── */
+const ENV = {
+  apiBase: 'http://localhost:3000/api',
+  tokenKey: 'nexus_token',
+  userKey:  'nexus_user',
+};
+
+/* ────────────────────────────────────────────────────────────────────────────
+   APP STATE  (Angular: AppState / Store)
+──────────────────────────────────────────────────────────────────────────── */
+const AppState = {
+  token: null,
+  user: null,
+  records: [],
+  filteredRecords: [],
+  users: [],
+  stats: null,
+  apiDelay: 0,
+  sortField: 'updatedAt',
+  sortDir: 'desc',
+  editingUserId: null,
+};
+
+/* ────────────────────────────────────────────────────────────────────────────
+   HTTP SERVICE  (Angular: HttpClient wrapper)
+──────────────────────────────────────────────────────────────────────────── */
+const HttpService = {
+  async request(method, path, body = null, useDelay = false) {
+    const url = `${ENV.apiBase}${path}${useDelay && AppState.apiDelay > 0 ? `?delay=${AppState.apiDelay}` : ''}`;
+    const headers = { 'Content-Type': 'application/json' };
+    if (AppState.token) headers['Authorization'] = `Bearer ${AppState.token}`;
+    const opts = { method, headers };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
+    return data;
+  },
+  get:    (p, d) => HttpService.request('GET', p, null, d),
+  post:   (p, b) => HttpService.request('POST', p, b),
+  put:    (p, b) => HttpService.request('PUT', p, b),
+  delete: (p)    => HttpService.request('DELETE', p),
+};
+
+/* ────────────────────────────────────────────────────────────────────────────
+   AUTH SERVICE  (Angular: AuthService)
+──────────────────────────────────────────────────────────────────────────── */
+const AuthService = {
+  login: (userId, password, role) => HttpService.post('/auth/login', { userId, password, role }),
+  getProfile: () => HttpService.get('/auth/profile'),
+  isLoggedIn: () => !!AppState.token,
+  saveSession: (token, user) => {
+    AppState.token = token;
+    AppState.user = user;
+    sessionStorage.setItem(ENV.tokenKey, token);
+    sessionStorage.setItem(ENV.userKey, JSON.stringify(user));
+  },
+  loadSession: () => {
+    const t = sessionStorage.getItem(ENV.tokenKey);
+    const u = sessionStorage.getItem(ENV.userKey);
+    if (t && u) { AppState.token = t; AppState.user = JSON.parse(u); return true; }
+    return false;
+  },
+  clearSession: () => {
+    AppState.token = null; AppState.user = null;
+    sessionStorage.removeItem(ENV.tokenKey);
+    sessionStorage.removeItem(ENV.userKey);
+  },
+};
+
+/* ────────────────────────────────────────────────────────────────────────────
+   RECORDS SERVICE  (Angular: RecordsService)
+──────────────────────────────────────────────────────────────────────────── */
+const RecordsService = {
+  getAll:  ()   => HttpService.get('/records', true),
+  getStats: ()  => HttpService.get('/records/stats', true),
+  getById: (id) => HttpService.get(`/records/${id}`),
+};
+
+/* ────────────────────────────────────────────────────────────────────────────
+   USER SERVICE  (Angular: UserService — admin only)
+──────────────────────────────────────────────────────────────────────────── */
+const UserService = {
+  getAll:    ()     => HttpService.get('/users', true),
+  create:    (data) => HttpService.post('/users', data),
+  update:    (id, data) => HttpService.put(`/users/${id}`, data),
+  delete:    (id)   => HttpService.delete(`/users/${id}`),
+};
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ROUTER  (Angular: Router)
+──────────────────────────────────────────────────────────────────────────── */
+const Router = {
+  navigate(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+  }
+};
+
+/* ────────────────────────────────────────────────────────────────────────────
+   UI HELPERS
+──────────────────────────────────────────────────────────────────────────── */
+let loadingStart, loadingInterval;
+
+function showLoading(text = 'Fetching data...') {
+  const o = document.getElementById('loading-overlay');
+  document.getElementById('loading-text').textContent = text;
+  document.getElementById('loading-timer').textContent = '0.0s';
+  loadingStart = Date.now();
+  o.classList.add('show');
+  clearInterval(loadingInterval);
+  loadingInterval = setInterval(() => {
+    const s = ((Date.now() - loadingStart) / 1000).toFixed(1);
+    document.getElementById('loading-timer').textContent = s + 's';
+  }, 100);
+}
+
+function hideLoading() {
+  clearInterval(loadingInterval);
+  document.getElementById('loading-overlay').classList.remove('show');
+}
+
+function showInlineLoading(id, label = 'Loading...') {
+  const el = document.getElementById(id);
+  if (el) { el.style.display = 'inline-flex'; if (id.includes('overview')) el.querySelector('span').textContent = label; }
+}
+function hideInlineLoading(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+function showBar() {
+  const w = document.getElementById('loading-bar-wrapper');
+  const b = document.getElementById('loading-bar');
+  w.classList.add('show'); b.style.width = '0';
+  let p = 0;
+  const iv = setInterval(() => { p = Math.min(p + Math.random() * 15, 90); b.style.width = p + '%'; }, 120);
+  return iv;
+}
+function hideBar(iv) {
+  clearInterval(iv);
+  const b = document.getElementById('loading-bar');
+  b.style.width = '100%';
+  setTimeout(() => { document.getElementById('loading-bar-wrapper').classList.remove('show'); b.style.width = '0'; }, 400);
+}
+
+function toast(message, type = 'success') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = message;
+  t.onclick = () => t.remove();
+  c.appendChild(t);
+  setTimeout(() => t.style.opacity = '0', 3500);
+  setTimeout(() => t.remove(), 4000);
+}
+
+function formatDate(iso) {
+  if (!iso) return '<span class="text-dim">—</span>';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatValue(v) {
+  if (!v) return '<span class="text-dim">—</span>';
+  return '$' + v.toLocaleString();
+}
+
+function badge(val, base = '') {
+  const cls = base ? `badge-${base}` : `badge-${(val || '').replace(/\s+/g, '-')}`;
+  return `<span class="badge-pill ${cls}">${val}</span>`;
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LOGIN COMPONENT
+──────────────────────────────────────────────────────────────────────────── */
+async function handleLogin() {
+  const userId = document.getElementById('login-userid').value.trim();
+  const password = document.getElementById('login-password').value;
+  const role = document.getElementById('login-role').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+
+  errEl.classList.remove('show');
+  if (!userId || !password || !role) {
+    errEl.textContent = 'All fields are required.'; errEl.classList.add('show'); return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-inline"></span>Authenticating...';
+
+  try {
+    const resp = await AuthService.login(userId, password, role);
+    AuthService.saveSession(resp.data.token, resp.data.user);
+    await initDashboard();
+  } catch (e) {
+    errEl.textContent = e.message || 'Login failed. Please try again.';
+    errEl.classList.add('show');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Sign In';
+  }
+}
+
+// Allow enter key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('view-login').classList.contains('active')) handleLogin();
+});
+
+function handleLogout() {
+  AuthService.clearSession();
+  AppState.records = []; AppState.users = []; AppState.stats = null;
+  Router.navigate('view-login');
+  toast('Signed out successfully.', 'info');
+  document.getElementById('login-userid').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-role').value = '';
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   DASHBOARD INIT  (Angular: ngOnInit lifecycle)
+──────────────────────────────────────────────────────────────────────────── */
+async function initDashboard() {
+  Router.navigate('view-dashboard');
+  const user = AppState.user;
+  const isAdmin = user.role === 'Admin';
+
+  // Topbar
+  const av = document.getElementById('topbar-avatar');
+  av.textContent = getInitials(user.fullName);
+  av.className = `user-avatar ${isAdmin ? 'admin' : 'user'}`;
+  document.getElementById('topbar-name').textContent = user.fullName.split(' ')[0];
+  document.getElementById('topbar-role').textContent = user.role.toUpperCase();
+
+  // Show admin tab
+  const adminTabBtn = document.getElementById('admin-tab-btn');
+  adminTabBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+
+  // Greeting
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('welcome-title').textContent = `${greet}, ${user.fullName.split(' ')[0]}`;
+  document.getElementById('welcome-sub').textContent = `${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+
+  // Switch to overview tab
+  switchTab('overview', document.querySelector('.nav-tab[data-tab="overview"]'));
+
+  // Async parallel loads  (demonstrating async processing)
+  const barIv = showBar();
+  showInlineLoading('async-indicator-overview', 'Fetching data asynchronously...');
+  if (AppState.apiDelay > 0) showLoading(`Loading with ${AppState.apiDelay}ms simulated delay...`);
+
+  try {
+    // Parallel async calls — like Angular forkJoin / Promise.all
+    const [statsResp, recordsResp] = await Promise.all([
+      RecordsService.getStats(),
+      RecordsService.getAll(),
+    ]);
+
+    AppState.stats = statsResp.data;
+    AppState.records = recordsResp.data || [];
+
+    renderOverview();
+    renderRecordsTable(AppState.records);
+
+    document.getElementById('records-sub').textContent =
+      `${AppState.records.length} record(s) loaded · ${recordsResp.meta?.accessNote || ''}`;
+
+    if (isAdmin) {
+      loadUsers();
+    }
+  } catch (e) {
+    toast(e.message || 'Failed to load data', 'error');
+  } finally {
+    hideLoading();
+    hideInlineLoading('async-indicator-overview');
+    hideBar(barIv);
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   OVERVIEW COMPONENT
+──────────────────────────────────────────────────────────────────────────── */
+function renderOverview() {
+  const user = AppState.user;
+  const isAdmin = user.role === 'Admin';
+  const stats = AppState.stats;
+
+  // Stats grid
+  const sg = document.getElementById('stats-grid');
+  sg.innerHTML = `
+    <div class="stat-card green" style="animation-delay:0s">
+      <div class="stat-label">Total Records</div>
+      <div class="stat-value green">${stats.total}</div>
+      <div class="stat-sub">${isAdmin ? 'Full access including Confidential' : 'Public + Restricted visible'}</div>
+    </div>
+    <div class="stat-card blue" style="animation-delay:0.08s">
+      <div class="stat-label">Active Records</div>
+      <div class="stat-value blue">${stats.byStatus['Active'] || 0}</div>
+      <div class="stat-sub">${stats.byStatus['Pending'] || 0} pending action</div>
+    </div>
+    <div class="stat-card warn" style="animation-delay:0.16s">
+      <div class="stat-label">Critical / High</div>
+      <div class="stat-value warn">${(stats.byPriority['Critical'] || 0) + (stats.byPriority['High'] || 0)}</div>
+      <div class="stat-sub">${stats.byPriority['Critical'] || 0} critical priority</div>
+    </div>
+    <div class="stat-card ${isAdmin ? 'red' : 'blue'}" style="animation-delay:0.24s">
+      <div class="stat-label">${isAdmin ? 'Confidential' : 'Access Level'}</div>
+      <div class="stat-value ${isAdmin ? 'red' : 'blue'}">${isAdmin ? (stats.byAccessLevel['Confidential'] || 0) : (stats.byAccessLevel['Public'] || 0)}</div>
+      <div class="stat-sub">${isAdmin ? 'Confidential records visible' : 'Public records available'}</div>
+    </div>
+  `;
+
+  // Profile card
+  const pc = document.getElementById('profile-card');
+  pc.innerHTML = `
+    <div class="profile-header">
+      <div class="profile-avatar ${isAdmin ? 'admin' : 'user'}">${getInitials(user.fullName)}</div>
+      <div>
+        <div class="profile-name">${user.fullName}</div>
+        <div class="profile-role-badge ${isAdmin ? 'admin' : 'user'}">
+          ${isAdmin ? '⬡' : '○'} ${user.role}
+        </div>
+      </div>
+    </div>
+    <div class="profile-fields">
+      <div class="profile-field"><span class="pf-label">User ID</span><span class="pf-value mono">${user.userId}</span></div>
+      <div class="profile-field"><span class="pf-label">Email</span><span class="pf-value">${user.email}</span></div>
+      <div class="profile-field"><span class="pf-label">Department</span><span class="pf-value">${user.department}</span></div>
+      <div class="profile-field"><span class="pf-label">Member Since</span><span class="pf-value">${formatDate(user.createdAt)}</span></div>
+      <div class="profile-field">
+        <span class="pf-label">Status</span>
+        <span class="pf-value">
+          <span class="active-badge"><span class="active-dot"></span> Active</span>
+        </span>
+      </div>
+      <div class="profile-field"><span class="pf-label">Last Login</span><span class="pf-value">${formatDate(user.lastLogin)}</span></div>
+    </div>
+  `;
+
+  // Access info card
+  const ac = document.getElementById('access-card');
+  if (isAdmin) {
+    ac.innerHTML = `
+      <h3 style="font-family:var(--f-display);font-size:16px;font-weight:700;margin-bottom:12px;">Access Privileges</h3>
+      <div class="access-banner admin" style="margin-bottom:0">
+        <span class="access-banner-icon">🔑</span>
+        <span>Admin — Full platform access granted</span>
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+        ${[
+          ['View all records', 'Public + Restricted + Confidential'],
+          ['Manage users', 'Create, Edit, Deactivate, Delete'],
+          ['API delay control', 'Simulate async processing'],
+          ['System configuration', 'Platform-wide settings'],
+        ].map(([k,v]) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--c-border)">
+            <span style="font-size:12px;color:var(--c-text2)">${k}</span>
+            <span class="badge-pill badge-Active" style="font-size:10px">${v}</span>
+          </div>`).join('')}
+      </div>
+    `;
+  } else {
+    ac.innerHTML = `
+      <h3 style="font-family:var(--f-display);font-size:16px;font-weight:700;margin-bottom:12px;">Access Level</h3>
+      <div class="access-banner user" style="margin-bottom:0">
+        <span class="access-banner-icon">👤</span>
+        <span>General User — Standard access</span>
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+        ${[
+          ['View Public records', '✓ Allowed', 'green'],
+          ['View Restricted records', '✓ Allowed', 'green'],
+          ['View Confidential records', '✗ Denied', 'red'],
+          ['Manage users', '✗ Admin only', 'red'],
+        ].map(([k,v,c]) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--c-border)">
+            <span style="font-size:12px;color:var(--c-text2)">${k}</span>
+            <span class="badge-pill badge-${c === 'green' ? 'Active' : 'Closed'}" style="font-size:10px">${v}</span>
+          </div>`).join('')}
+      </div>
+    `;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   RECORDS COMPONENT
+──────────────────────────────────────────────────────────────────────────── */
+async function loadRecords() {
+  showInlineLoading('async-indicator-records');
+  const barIv = showBar();
+  if (AppState.apiDelay > 0) showLoading(`Fetching records... (${AppState.apiDelay}ms delay)`);
+  try {
+    const resp = await RecordsService.getAll();
+    AppState.records = resp.data || [];
+    renderRecordsTable(AppState.records);
+    const processingMs = resp.processingTimeMs || 0;
+    document.getElementById('records-sub').textContent =
+      `${AppState.records.length} records · ${resp.meta?.accessNote} · ${processingMs + AppState.apiDelay}ms`;
+    toast(`Loaded ${AppState.records.length} records`, 'success');
+  } catch (e) { toast(e.message, 'error'); }
+  finally { hideLoading(); hideInlineLoading('async-indicator-records'); hideBar(barIv); }
+}
+
+function renderRecordsTable(records) {
+  const user = AppState.user;
+  const isAdmin = user.role === 'Admin';
+  const tbody = document.getElementById('records-tbody');
+
+  // Access banner
+  const banner = document.getElementById('records-access-banner');
+  banner.style.display = 'flex';
+  if (isAdmin) {
+    banner.className = 'access-banner admin';
+    banner.innerHTML = `<span class="access-banner-icon">🔑</span><span>Admin view: All records including Confidential are visible</span>`;
+  } else {
+    banner.className = 'access-banner user';
+    banner.innerHTML = `<span class="access-banner-icon">🔒</span><span>General User view: Confidential records are hidden (${records.filter(r=>r.accessLevel==='Confidential').length} hidden)</span>`;
+  }
+
+  if (!records.length) {
+    tbody.innerHTML = '';
+    document.getElementById('records-empty').style.display = 'block';
+    document.getElementById('records-count').textContent = '';
+    return;
+  }
+  document.getElementById('records-empty').style.display = 'none';
+
+  tbody.innerHTML = records.map((r, i) => `
+    <tr style="animation:statIn 0.3s ease ${i * 0.04}s both">
+      <td>
+        <div style="font-weight:500;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.title}">${r.title}</div>
+        <div class="text-dim" style="margin-top:2px">${r.tags.slice(0,2).map(t=>`<span style="background:rgba(255,255,255,0.04);padding:1px 5px;border-radius:3px;font-size:10px">#${t}</span>`).join(' ')}</div>
+      </td>
+      <td><span class="text-muted">${r.category}</span></td>
+      <td>${badge(r.status)}</td>
+      <td>${badge(r.priority)}</td>
+      <td>${badge(r.accessLevel)}</td>
+      <td>
+        <div style="font-size:12px">${r.ownerName}</div>
+      </td>
+      <td><span class="text-dim">${formatDate(r.updatedAt)}</span></td>
+      <td><span class="mono" style="font-size:12px;color:var(--c-accent)">${formatValue(r.value)}</span></td>
+    </tr>`).join('');
+
+  document.getElementById('records-count').textContent =
+    `Showing ${records.length} of ${AppState.records.length} records`;
+}
+
+// Sort
+let sortState = { field: 'updatedAt', dir: 'desc' };
+function sortRecords(field) {
+  if (sortState.field === field) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+  else { sortState.field = field; sortState.dir = 'asc'; }
+  document.querySelectorAll('.data-table th').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.getAttribute('onclick')?.includes(field)) th.classList.add('sort-' + sortState.dir);
+  });
+  const sorted = [...AppState.filteredRecords || AppState.records].sort((a, b) => {
+    const va = a[field] || ''; const vb = b[field] || '';
+    return sortState.dir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+  renderRecordsTable(sorted);
+}
+
+// Filter
+function filterRecords() {
+  const q = document.getElementById('record-search').value.toLowerCase();
+  const s = document.getElementById('filter-status').value;
+  const p = document.getElementById('filter-priority').value;
+  const a = document.getElementById('filter-access').value;
+  AppState.filteredRecords = AppState.records.filter(r =>
+    (!q || r.title.toLowerCase().includes(q) || r.category.toLowerCase().includes(q) || r.tags.some(t => t.toLowerCase().includes(q))) &&
+    (!s || r.status === s) &&
+    (!p || r.priority === p) &&
+    (!a || r.accessLevel === a)
+  );
+  renderRecordsTable(AppState.filteredRecords);
+}
+
+function resetFilters() {
+  document.getElementById('record-search').value = '';
+  document.getElementById('filter-status').value = '';
+  document.getElementById('filter-priority').value = '';
+  document.getElementById('filter-access').value = '';
+  AppState.filteredRecords = null;
+  renderRecordsTable(AppState.records);
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ADMIN — USERS COMPONENT
+──────────────────────────────────────────────────────────────────────────── */
+async function loadUsers() {
+  showInlineLoading('async-indicator-admin');
+  const barIv = showBar();
+  if (AppState.apiDelay > 0) showLoading(`Fetching users... (${AppState.apiDelay}ms delay)`);
+  try {
+    const resp = await UserService.getAll();
+    AppState.users = resp.data || [];
+    renderUsersTable();
+    document.getElementById('admin-badge').textContent = AppState.users.length;
+  } catch (e) { toast(e.message, 'error'); }
+  finally { hideLoading(); hideInlineLoading('async-indicator-admin'); hideBar(barIv); }
+}
+
+function renderUsersTable() {
+  const tbody = document.getElementById('users-tbody');
+  if (!AppState.users.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--c-text2);padding:32px">No users found</td></tr>'; return; }
+
+  tbody.innerHTML = AppState.users.map((u, i) => `
+    <tr style="animation:statIn 0.3s ease ${i*0.05}s both">
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="user-avatar ${u.role === 'Admin' ? 'admin' : 'user'}" style="width:32px;height:32px;font-size:12px">${getInitials(u.fullName)}</div>
+          <span style="font-weight:500">${u.fullName}</span>
+        </div>
+      </td>
+      <td><span class="mono" style="font-size:12px">${u.userId}</span></td>
+      <td><span class="text-muted" style="font-size:12px">${u.email}</span></td>
+      <td><span class="text-muted">${u.department}</span></td>
+      <td>${badge(u.role, u.role === 'Admin' ? 'Admin' : 'General')}</td>
+      <td>${badge(String(u.isActive))}</td>
+      <td><span class="text-dim">${formatDate(u.lastLogin)}</span></td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn-sm" onclick="openEditUserModal('${u.id}')">Edit</button>
+          <button class="btn-sm" onclick="toggleUserStatus('${u.id}', ${u.isActive})">${u.isActive ? 'Deactivate' : 'Activate'}</button>
+          <button class="btn-sm danger" onclick="deleteUser('${u.id}')">Delete</button>
+        </div>
+      </td>
+    </tr>`).join('');
+
+  document.getElementById('users-count').textContent = `${AppState.users.length} user(s) in the system`;
+}
+
+async function toggleUserStatus(id, current) {
+  try {
+    await UserService.update(id, { isActive: !current });
+    toast(`User ${current ? 'deactivated' : 'activated'}`, 'success');
+    await loadUsers();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Are you sure you want to delete this user?')) return;
+  try {
+    await UserService.delete(id);
+    toast('User deleted', 'success');
+    await loadUsers();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   USER MODAL  (Angular: UserModalComponent)
+──────────────────────────────────────────────────────────────────────────── */
+function openCreateUserModal() {
+  AppState.editingUserId = null;
+  document.getElementById('modal-title').textContent = 'Create User';
+  document.getElementById('modal-sub').textContent = 'Add a new user to the platform';
+  document.getElementById('modal-save-btn').textContent = 'Create User';
+  document.getElementById('m-userId').disabled = false;
+  ['fullName','userId','email','password','department'].forEach(f => document.getElementById('m-' + f).value = '');
+  document.getElementById('m-role').value = 'General User';
+  document.getElementById('m-password').placeholder = 'Min 6 characters';
+  document.getElementById('modal-error').classList.remove('show');
+  document.getElementById('user-modal-backdrop').classList.add('show');
+}
+
+function openEditUserModal(id) {
+  const user = AppState.users.find(u => u.id === id);
+  if (!user) return;
+  AppState.editingUserId = id;
+  document.getElementById('modal-title').textContent = 'Edit User';
+  document.getElementById('modal-sub').textContent = `Editing ${user.fullName}`;
+  document.getElementById('modal-save-btn').textContent = 'Save Changes';
+  document.getElementById('m-fullName').value = user.fullName;
+  document.getElementById('m-userId').value = user.userId;
+  document.getElementById('m-userId').disabled = true;
+  document.getElementById('m-email').value = user.email;
+  document.getElementById('m-password').value = '';
+  document.getElementById('m-password').placeholder = 'Leave blank to keep current';
+  document.getElementById('m-role').value = user.role;
+  document.getElementById('m-department').value = user.department;
+  document.getElementById('modal-error').classList.remove('show');
+  document.getElementById('user-modal-backdrop').classList.add('show');
+}
+
+function closeUserModal() {
+  document.getElementById('user-modal-backdrop').classList.remove('show');
+}
+function closeModalOnBackdrop(e) {
+  if (e.target.id === 'user-modal-backdrop') closeUserModal();
+}
+
+async function saveUser() {
+  const fullName   = document.getElementById('m-fullName').value.trim();
+  const userId     = document.getElementById('m-userId').value.trim();
+  const email      = document.getElementById('m-email').value.trim();
+  const password   = document.getElementById('m-password').value;
+  const role       = document.getElementById('m-role').value;
+  const department = document.getElementById('m-department').value.trim();
+  const errEl = document.getElementById('modal-error');
+  errEl.classList.remove('show');
+
+  if (!fullName || !email || (!AppState.editingUserId && (!userId || !password))) {
+    errEl.textContent = 'Please fill all required fields.'; errEl.classList.add('show'); return;
+  }
+
+  const btn = document.getElementById('modal-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  try {
+    if (AppState.editingUserId) {
+      const payload = { fullName, email, role, department };
+      if (password) payload.password = password;
+      await UserService.update(AppState.editingUserId, payload);
+      toast('User updated successfully', 'success');
+    } else {
+      await UserService.create({ fullName, userId, email, password, role, department });
+      toast('User created successfully', 'success');
+    }
+    closeUserModal();
+    await loadUsers();
+  } catch(e) {
+    errEl.textContent = e.message; errEl.classList.add('show');
+  } finally {
+    btn.disabled = false; btn.textContent = AppState.editingUserId ? 'Save Changes' : 'Create User';
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   TAB NAVIGATION  (Angular: RouterLinkActive)
+──────────────────────────────────────────────────────────────────────────── */
+function switchTab(tabId, btnEl) {
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  document.getElementById('tab-' + tabId).classList.add('active');
+
+  // Lazy load admin users when tab is first opened
+  if (tabId === 'admin' && AppState.users.length === 0) loadUsers();
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   DELAY CONTROL  (Async processing demo)
+──────────────────────────────────────────────────────────────────────────── */
+function updateDelay(ms) {
+  AppState.apiDelay = parseInt(ms);
+  const label = ms == 0 ? '0ms' : ms >= 1000 ? (ms/1000).toFixed(1) + 's' : ms + 'ms';
+  document.getElementById('delay-display').textContent = label;
+  const el = document.getElementById('delay-display');
+  el.style.color = ms > 2000 ? 'var(--c-error)' : ms > 0 ? 'var(--c-warn)' : 'var(--c-accent)';
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   APP BOOTSTRAP  (Angular: main.ts / bootstrapApplication)
+──────────────────────────────────────────────────────────────────────────── */
+(function bootstrap() {
+  // Guard — if token in session, restore and go to dashboard
+  if (AuthService.loadSession()) {
+    initDashboard();
+  } else {
+    Router.navigate('view-login');
+  }
+})();
+</script>
+</body>
+</html>
